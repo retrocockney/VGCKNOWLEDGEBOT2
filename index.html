@@ -1,18 +1,95 @@
-async function askAI(question) {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer YOUR_API_KEY_HERE"
-    },
-    body: JSON.stringify({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are an expert in Pokémon TCG and VGC only." },
-        { role: "user", content: question }
-      ]
-    })
-  });
-  const data = await response.json();
-  return data.choices[0].message.content;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon TCG & VGC Bot</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f2f2f2; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
+#chat-container { width:400px; max-width:90%; background:#fff; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); display:flex; flex-direction:column; overflow:hidden; }
+#chat-box { flex:1; padding:10px; overflow-y:auto; border-bottom:1px solid #ddd; }
+.message { margin:5px 0; }
+.user { text-align:right; color:#fff; background:#007bff; display:inline-block; padding:5px 10px; border-radius:10px; }
+.bot { text-align:left; color:#000; background:#e5e5e5; display:inline-block; padding:5px 10px; border-radius:10px; }
+#input-area { display:flex; }
+#user-input { flex:1; padding:10px; border:none; border-top:1px solid #ddd; }
+#send-btn { padding:10px; border:none; background:#007bff; color:#fff; cursor:pointer; }
+.expand-btn { background:none; border:none; color:#007bff; cursor:pointer; font-weight:bold; margin-left:5px; }
+.expandable { display:none; margin-top:5px; font-size:0.9em; color:#333; }
+</style>
+</head>
+<body>
+
+<div id="chat-container">
+  <div id="chat-box"></div>
+  <div id="input-area">
+    <input type="text" id="user-input" placeholder="Ask a Pokémon question..." />
+    <button id="send-btn">Send</button>
+  </div>
+</div>
+
+<script>
+// Example dataset: 200 short + long answers
+const qaList = [
+  { question: "pikachu weakness", shortAnswer: "Pikachu is weak to Ground-type moves.", longAnswer: "Pikachu is weak to Ground-type moves. In VGC, you need to protect Pikachu with Flying, Levitate, or resistances. In TCG, Pikachu takes more damage from Fighting-type moves." },
+  { question: "starter tgc", shortAnswer: "Strong starter cards include Charizard, Blastoise, and Venusaur.", longAnswer: "Strong starter cards include Charizard, Blastoise, and Venusaur. They are popular in competitive TCG decks due to high HP and powerful attacks. Always check current meta for rotation legality." },
+  { question: "vmax rules", shortAnswer: "VMAX Pokémon have higher HP and give 2 prize cards when knocked out.", longAnswer: "VMAX Pokémon have higher HP and give 2 prize cards when knocked out. They can evolve from the normal Pokémon and have powerful moves, making them central to many TCG strategies." },
+  { question: "vgc team size", shortAnswer: "VGC teams have 6 Pokémon, with 4 used per match.", longAnswer: "VGC teams have 6 Pokémon, but only 4 can battle per match. Selecting the right 4 and predicting the opponent's strategy is crucial for success." },
+  // ...add 196 more questions here
+];
+
+// Helper: simple fuzzy matching based on keyword inclusion
+function findBestMatch(input) {
+  const lowerInput = input.toLowerCase();
+  const matches = qaList.filter(q => lowerInput.includes(q.question.toLowerCase()));
+  if (matches.length > 0) return matches[Math.floor(Math.random()*matches.length)];
+  return qaList[Math.floor(Math.random()*qaList.length)]; // pick random if no match
 }
+
+// Add message to chat
+function addMessage(message, sender, longAnswer) {
+  const div = document.createElement("div");
+  div.className = "message " + sender;
+  div.textContent = message;
+
+  if(longAnswer) {
+    const expandBtn = document.createElement("button");
+    expandBtn.textContent = "+";
+    expandBtn.className = "expand-btn";
+    const expandableDiv = document.createElement("div");
+    expandableDiv.textContent = longAnswer;
+    expandableDiv.className = "expandable";
+
+    expandBtn.addEventListener("click", () => {
+      expandableDiv.style.display = expandableDiv.style.display === "none" ? "block" : "none";
+    });
+
+    div.appendChild(expandBtn);
+    div.appendChild(expandableDiv);
+  }
+
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// Handle sending
+const sendBtn = document.getElementById("send-btn");
+const userInput = document.getElementById("user-input");
+
+sendBtn.addEventListener("click", () => {
+  const question = userInput.value.trim();
+  if(!question) return;
+  addMessage(question, "user");
+  userInput.value = "";
+
+  const match = findBestMatch(question);
+  addMessage(match.shortAnswer, "bot", match.longAnswer);
+});
+
+userInput.addEventListener("keypress", (e) => {
+  if(e.key === "Enter") sendBtn.click();
+});
+</script>
+
+</body>
+</html>
